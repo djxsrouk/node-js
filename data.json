@@ -13,6 +13,10 @@
     },
     {
         "id": 4,
-        "value": "Buy Potatos"
+        "value": "Buy Potatoes"
+    },
+    {
+        "id": 5,
+        "value": "Buy Bread"
     }
 ]

@@ -68,9 +68,7 @@ app.put("/items/:id", async (req, res) => {
         const data = await readData();
         const itemId = parseInt(req.params.id, 10);
         const updatedValue = req.body.title;
-
         const itemIndex = data.findIndex(item => item.id === itemId);
-
         if (itemIndex !== -1) {
             data[itemIndex].value = updatedValue;
             await writeData(data);
@@ -88,9 +86,7 @@ app.delete("/items/:id", async (req, res) => {
     try {
         const data = await readData();
         const itemId = parseInt(req.params.id, 10);
-
         const newData = data.filter(item => item.id !== itemId);
-
         if (newData.length !== data.length) {
             await writeData(newData);
             res.json({ message: "Item deleted successfully" });
