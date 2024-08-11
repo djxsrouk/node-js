@@ -1,0 +1,13 @@
+[
+    {
+        "id": 1,
+        "name": "Iphone 15 Pro Max",
+        "price": 7000
+    },
+    {
+        "id": 2,
+        "name": "Macbook Pro M3",
+        "price": 14500,
+        "description": "Display: 13 Inch"
+    }
+]
