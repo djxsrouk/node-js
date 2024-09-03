@@ -1,46 +1,55 @@
+const path = require("path");
+const fs = require("fs").promises;
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
+const passport = require("passport");
+const multer = require("multer");
+const xlsx = require("xlsx");
+
+require("dotenv").config();
+require("./config/passport")(passport);
 
 const app = express();
 
-const itemsRouter = require("./routes/items")
-const authRouter = require("./routes/auth");
-
-const passport = require("passport");
-require("./config/passport")(passport);
-
-const connectionString = "mongodb+srv://djxsrouk:XhyXHdVKDYF2hZcn@goit.gakig.mongodb.net/?retryWrites=true&w=majority&appName=GoIT";
+// MongoDB Connection
+const connectionString = process.env.MONGO_URI;
 mongoose.connect(connectionString)
-    .then(() => console.log("MongoDB connected..."))
+    .then(() => console.log("Your MongoDB database is connected..."))
     .catch(err => console.log(err));
 
+// Import Routes
+const itemsRouter = require("./routes/items");
+const authRouter = require("./routes/auth");
+
+
+// Middlewares
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(cors());
+app.use(passport.initialize());
 
-app.use("/items", itemsRouter)
+// Routes
+app.use("/items", itemsRouter);
 app.use("/auth", authRouter);
 
 app.get("/", async (req, res) => {
     res.json({ status: 200 });
 });
 
+// Error Handling
 app.use((err, req, res, next) => {
-    res.status(err.status || 500);
-    res.json({
+    console.error(err.stack); // Logs the error stack trace
+    res.status(err.status || 500).json({
         status: "error",
         code: err.status || 500,
         message: err.message,
         data: err.data || "Internal Server Error",
     });
-})
+});
 
-
-
-const PORT = 3000;
+// Server Initialization
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    {
-        console.log(`Server is running on port ${PORT}`);
-    }
+    console.log(`Server is running on port ${PORT}`);
 });

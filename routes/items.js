@@ -1,16 +1,38 @@
 const express = require("express");
-const { readData, writeData } = require("../services/dataService");
 const router = express.Router();
 const Joi = require("joi");
 const Item = require("../models/Items");
 const passport = require("passport");
+const path = require("path");
+const fs = require("fs").promises;
+const multer = require("multer");
+const xlsx = require("xlsx");
 
-const itemsSchema = Joi.object({
+const itemSchema = Joi.object({
     name: Joi.string().min(3).max(30).required(),
     description: Joi.string().max(255).optional(),
     price: Joi.number().positive().required(),
     imageLink: Joi.string().uri(),
 });
+
+const itemsSchema = Joi.array().items(itemSchema);
+
+
+// Multer Configuration for File Uploads
+const uploadDir = path.join(process.cwd(), "uploads");
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, file.originalname);
+  },
+  limits: {
+    fileSize: 1048576,
+  },
+});
+const upload = multer({ storage });
+
 
 const auth = (req, res, next) => {
     passport.authenticate("jwt", { session: false }, (err, user) => {
@@ -43,7 +65,7 @@ router.get("/", auth, async (req, res) => {
 
 router.post("/", auth, async (req, res) => {
     try {
-        const { error } = itemsSchema.validate(req.body);
+        const { error } = itemSchema.validate(req.body);
         if (error) {
             res.status(400).json({ error: error.details[0].message });
         }
@@ -64,7 +86,7 @@ router.post("/", auth, async (req, res) => {
 
 router.put("/:id", auth, async (req, res) => {
     try {
-        const { error } = itemsSchema.validate(req.body);
+        const { error } = itemSchema.validate(req.body);
         if (error) {
             res.status(400).json({ error: error.details[0].message });
         }
@@ -113,6 +135,35 @@ router.delete("/:id", auth, async (req, res) => {
         res.status(404).json({ error: "Item not found" });
     }
     res.json(deletedItem);
+});
+
+router.post("/upload", upload.single("file"), async (req, res, next) => {
+    try {
+        const { path: filePath } = req.file;
+        const { isWithDelete = "true" } = req.query;
+
+        const workbook = xlsx.readFile(filePath);
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName]
+        const data = xlsx.utils.sheet_to_json(sheet);
+
+        const { error } = itemsSchema.validate(data);
+        if (error) {
+            res.status(400).json({ error: error.details[0].message });
+            return;
+        }
+    
+        if (isWithDelete === "true") {
+            await Item.deleteMany({});
+        }
+        await Item.insertMany(data);
+        
+        await fs.unlink(filePath); // Remove excel file from upload folder
+
+        res.status(200).json({ message: "DB was succesfully updated!" });
+    } catch (error) {
+        next(error);
+    }
 });
 
 module.exports = router;
